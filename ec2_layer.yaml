@@ -1,0 +1,205 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+Description: Transit Gateway Project
+
+Parameters:
+  projectname:
+    Description: Project Name
+    Type: String
+    Default: tgw
+
+Resources:
+# 보안그룹 생성성
+  Vpc0Ec2Sg:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow ssh,http,https,icmp,tcp3128
+      VpcId: !ImportValue Vpc0Id
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: icmp
+          FromPort: -1
+          ToPort: -1
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 3128
+          ToPort: 3128
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: !Sub "${projectname}-sg-vpc0"
+
+  Vpc1Ec2Sg:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow ssh,icmp
+      VpcId: !ImportValue Vpc1Id
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: icmp
+          FromPort: -1
+          ToPort: -1
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: !Sub "${projectname}-sg-vpc1"
+
+  Vpc2Ec2Sg:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow ssh,icmp
+      VpcId: !ImportValue Vpc2Id
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: icmp
+          FromPort: -1
+          ToPort: -1
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: !Sub "${projectname}-sg-vpc2"
+
+# 키페어 생성(등록)
+  KeyPair:
+    Type: AWS::EC2::KeyPair
+    Properties:
+      KeyName: tgw-key
+      PublicKeyMaterial: ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCUjzsIR5lyoLfTmXKAUG3xc0UqpI25aY2pdRMJcIdTVi1Y4c6Sy7XgAcT2e9ss2ORkB0KopFXtVoXLHoClCYughTFu+mk2/Wd/KngJj6wGvNnCPncvlJ34EScw6psZmTcc9yQCN8Ejx94mhF2ccMg12BkD4fIiPbOknjGETUqB4hYmlP39GzX8xCuESqVfjjrNkTxlmo1nAgkvKNVGpRzPGHH4gGYTSIpDruPTKSL8V9miVFsqU99DrteW3spbbazFjVtkuUUiWWTZVvx5auzzVJ50Uc6EF8BAvWkV7y2n81EIR864aFtdUeWX0Kn3wtPZRVlThKP9CkWkHe4wDbA9 rsa-key-20260422
+      Tags: 
+        - Key: Name
+          Value: tgw-key
+
+# 웹 프록시 서버 생성
+  Vpc0Ec2:
+    Type: AWS::EC2::Instance
+    Properties: 
+      ImageId: ami-01811a24379d31fbd
+      InstanceType: t3.micro
+      KeyName: !Ref KeyPair
+      NetworkInterfaces:
+        - DeviceIndex: 0
+          AssociatePublicIpAddress: true
+          PrivateIpAddress: 10.0.1.10
+          GroupSet: 
+            - !Ref Vpc0Ec2Sg
+          SubnetId: !ImportValue Vpc0Sn1Id
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          yum update -y
+      Tags:
+        - Key: Name
+          Value: !Sub "${projectname}-vpc0-sn1-ec2"
+
+# VPC1 인스턴스 생성
+  Vpc1Ec21:
+    Type: AWS::EC2::Instance
+    Properties: 
+      ImageId: ami-07395584aac007ad4
+      InstanceType: t3.micro
+      NetworkInterfaces:
+        - DeviceIndex: 0
+          AssociatePublicIpAddress: false
+          PrivateIpAddress: 10.10.1.10
+          GroupSet: 
+            - !Ref Vpc1Ec2Sg
+          SubnetId: !ImportValue Vpc1Sn1Id
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          yum update -y
+          echo "p@ssw0rd" | passwd --stdin root
+          sed -i "s/^#PermitRootLogin.*/PermitRootLogin yes/g" /etc/ssh/sshd_config
+          sed -i "s/^PasswordAuthentication.*/PasswordAuthentication yes/g" /etc/ssh/sshd_config
+          systemctl restart sshd
+      Tags:
+        - Key: Name
+          Value: !Sub "${projectname}-vpc1-sn1-ec2"
+  Vpc1Ec22:
+    Type: AWS::EC2::Instance
+    Properties: 
+      ImageId: ami-07395584aac007ad4
+      InstanceType: t3.micro
+      NetworkInterfaces:
+        - DeviceIndex: 0
+          AssociatePublicIpAddress: false
+          PrivateIpAddress: 10.10.2.10
+          GroupSet: 
+            - !Ref Vpc1Ec2Sg
+          SubnetId: !ImportValue Vpc1Sn2Id
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          yum update -y
+          echo "p@ssw0rd" | passwd --stdin root
+          sed -i "s/^#PermitRootLogin.*/PermitRootLogin yes/g" /etc/ssh/sshd_config
+          sed -i "s/^PasswordAuthentication.*/PasswordAuthentication yes/g" /etc/ssh/sshd_config
+          systemctl restart sshd
+      Tags:
+        - Key: Name
+          Value: !Sub "${projectname}-vpc1-sn2-ec2"
+
+# VPC2 인스턴스 생성
+  Vpc2Ec21:
+    Type: AWS::EC2::Instance
+    Properties: 
+      ImageId: ami-07395584aac007ad4
+      InstanceType: t3.micro
+      NetworkInterfaces:
+        - DeviceIndex: 0
+          AssociatePublicIpAddress: false
+          PrivateIpAddress: 10.20.1.10
+          GroupSet: 
+            - !Ref Vpc2Ec2Sg
+          SubnetId: !ImportValue Vpc2Sn1Id
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          yum update -y
+          echo "p@ssw0rd" | passwd --stdin root
+          sed -i "s/^#PermitRootLogin.*/PermitRootLogin yes/g" /etc/ssh/sshd_config
+          sed -i "s/^PasswordAuthentication.*/PasswordAuthentication yes/g" /etc/ssh/sshd_config
+          systemctl restart sshd
+      Tags:
+        - Key: Name
+          Value: !Sub "${projectname}-vpc2-sn1-ec2"
+  Vpc2Ec22:
+    Type: AWS::EC2::Instance
+    Properties: 
+      ImageId: ami-07395584aac007ad4
+      InstanceType: t3.micro
+      NetworkInterfaces:
+        - DeviceIndex: 0
+          AssociatePublicIpAddress: false
+          PrivateIpAddress: 10.20.2.10
+          GroupSet: 
+            - !Ref Vpc2Ec2Sg
+          SubnetId: !ImportValue Vpc2Sn2Id
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          yum update -y
+          echo "p@ssw0rd" | passwd --stdin root
+          sed -i "s/^#PermitRootLogin.*/PermitRootLogin yes/g" /etc/ssh/sshd_config
+          sed -i "s/^PasswordAuthentication.*/PasswordAuthentication yes/g" /etc/ssh/sshd_config
+          systemctl restart sshd
+      Tags:
+        - Key: Name
+          Value: !Sub "${projectname}-vpc2-sn2-ec2"
