@@ -1,0 +1,327 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+Description: Transit Gateway Project
+
+Parameters:
+  projectname:
+    Description: Project Name
+    Type: String
+    Default: tgw
+
+Resources:
+# VPC 생성
+  Vpc0:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: !Sub "${projectname}-vpc-0"
+  Vpc1:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.10.0.0/16
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: !Sub "${projectname}-vpc-1"
+  Vpc2:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.20.0.0/16
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: !Sub "${projectname}-vpc-2"
+
+# 인터넷 게이트웨이 생성
+  Vpc0Igw:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Sub "${projectname}-vpc0-igw"
+
+  Vpc0IgwAtt:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref Vpc0
+      InternetGatewayId: !Ref Vpc0Igw
+
+# VPC0 서브넷 생성
+  Vpc0Sn1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Vpc0
+      CidrBlock: 10.0.1.0/24
+      AvailabilityZone: !Select [0, !GetAZs '']
+      Tags:
+        - Key: Name
+          Value: !Sub "${projectname}-vpc0-sn1"
+  Vpc0Sn2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Vpc0
+      CidrBlock: 10.0.2.0/24
+      AvailabilityZone: !Select [2, !GetAZs '']
+      Tags:
+        - Key: Name
+          Value: !Sub "${projectname}-vpc0-sn2"
+  Vpc0Sn3:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Vpc0
+      CidrBlock: 10.0.3.0/24
+      AvailabilityZone: !Select [0, !GetAZs '']
+      Tags:
+        - Key: Name
+          Value: !Sub "${projectname}-vpc0-sn3"
+  Vpc0Sn4:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Vpc0
+      CidrBlock: 10.0.4.0/24
+      AvailabilityZone: !Select [2, !GetAZs '']
+      Tags:
+        - Key: Name
+          Value: !Sub "${projectname}-vpc0-sn4"
+
+# VPC1 서브넷 생성
+  Vpc1Sn1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Vpc1
+      CidrBlock: 10.10.1.0/24
+      AvailabilityZone: !Select [0, !GetAZs '']
+      Tags:
+        - Key: Name
+          Value: !Sub "${projectname}-vpc1-sn1"
+  Vpc1Sn2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Vpc1
+      CidrBlock: 10.10.2.0/24
+      AvailabilityZone: !Select [2, !GetAZs '']
+      Tags:
+        - Key: Name
+          Value: !Sub "${projectname}-vpc1-sn2"
+  Vpc1Sn3:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Vpc1
+      CidrBlock: 10.10.3.0/24
+      AvailabilityZone: !Select [0, !GetAZs '']
+      Tags:
+        - Key: Name
+          Value: !Sub "${projectname}-vpc1-sn3"
+  Vpc1Sn4:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Vpc1
+      CidrBlock: 10.10.4.0/24
+      AvailabilityZone: !Select [2, !GetAZs '']
+      Tags:
+        - Key: Name
+          Value: !Sub "${projectname}-vpc1-sn4"
+
+# VPC2 서브넷 생성
+  Vpc2Sn1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Vpc2
+      CidrBlock: 10.20.1.0/24
+      AvailabilityZone: !Select [0, !GetAZs '']
+      Tags:
+        - Key: Name
+          Value: !Sub "${projectname}-vpc2-sn1"
+  Vpc2Sn2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Vpc2
+      CidrBlock: 10.20.2.0/24
+      AvailabilityZone: !Select [2, !GetAZs '']
+      Tags:
+        - Key: Name
+          Value: !Sub "${projectname}-vpc2-sn2"
+  Vpc2Sn3:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Vpc2
+      CidrBlock: 10.20.3.0/24
+      AvailabilityZone: !Select [0, !GetAZs '']
+      Tags:
+        - Key: Name
+          Value: !Sub "${projectname}-vpc2-sn3"
+  Vpc2Sn4:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Vpc2
+      CidrBlock: 10.20.4.0/24
+      AvailabilityZone: !Select [2, !GetAZs '']
+      Tags:
+        - Key: Name
+          Value: !Sub "${projectname}-vpc2-sn4"
+
+# VPC0 라우팅테이블 생성
+  Vpc0Rt12:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref Vpc0
+      Tags:
+        - Key: Name
+          Value: !Sub "${projectname}-vpc0-rt12"
+  Vpc0Rt12Sn1Ass:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref Vpc0Sn1
+      RouteTableId: !Ref Vpc0Rt12
+  Vpc0Rt12Sn2Ass:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref Vpc0Sn2
+      RouteTableId: !Ref Vpc0Rt12
+  Vpc0Rt12Default:
+    Type: AWS::EC2::Route
+    DependsOn: Vpc0Igw
+    Properties:
+      RouteTableId: !Ref Vpc0Rt12
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref Vpc0Igw
+
+  Vpc0Rt34:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref Vpc0
+      Tags:
+        - Key: Name
+          Value: !Sub "${projectname}-vpc0-rt34"
+  Vpc0Rt34Sn3Ass:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref Vpc0Sn3
+      RouteTableId: !Ref Vpc0Rt34
+  Vpc0Rt34Sn4Ass:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref Vpc0Sn4
+      RouteTableId: !Ref Vpc0Rt34
+
+# VPC1 라우팅테이블 생성
+  Vpc1Rt12:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref Vpc1
+      Tags:
+        - Key: Name
+          Value: !Sub "${projectname}-vpc1-rt12"
+  Vpc1Rt12Sn1Ass:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref Vpc1Sn1
+      RouteTableId: !Ref Vpc1Rt12
+  Vpc1Rt12Sn2Ass:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref Vpc1Sn2
+      RouteTableId: !Ref Vpc1Rt12
+
+  Vpc1Rt34:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref Vpc1
+      Tags:
+        - Key: Name
+          Value: !Sub "${projectname}-vpc1-rt34"
+  Vpc1Rt34Sn3Ass:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref Vpc1Sn3
+      RouteTableId: !Ref Vpc1Rt34
+  Vpc1Rt34Sn4Ass:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref Vpc1Sn4
+      RouteTableId: !Ref Vpc1Rt34
+
+# VPC2 라우팅테이블 생성
+  Vpc2Rt12:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref Vpc2
+      Tags:
+        - Key: Name
+          Value: !Sub "${projectname}-vpc2-rt12"
+  Vpc2Rt12Sn1Ass:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref Vpc2Sn1
+      RouteTableId: !Ref Vpc2Rt12
+  Vpc2Rt12Sn2Ass:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref Vpc2Sn2
+      RouteTableId: !Ref Vpc2Rt12
+
+  Vpc2Rt34:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref Vpc2
+      Tags:
+        - Key: Name
+          Value: !Sub "${projectname}-vpc2-rt34"
+  Vpc2Rt34Sn3Ass:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref Vpc2Sn3
+      RouteTableId: !Ref Vpc2Rt34
+  Vpc2Rt34Sn4Ass:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref Vpc2Sn4
+      RouteTableId: !Ref Vpc2Rt34
+
+Outputs:
+  Vpc0Id:
+    Description: The VPC0 ID
+    Value: !Ref Vpc0
+    Export:
+      Name: Vpc0Id
+  Vpc1Id:
+    Description: The VPC1 ID
+    Value: !Ref Vpc1
+    Export:
+      Name: Vpc1Id
+  Vpc2Id:
+    Description: The VPC2 ID
+    Value: !Ref Vpc2
+    Export:
+      Name: Vpc2Id
+  Vpc0Sn1Id:
+    Description: The VPC0 Subnet1 ID
+    Value: !Ref Vpc0Sn1
+    Export:
+      Name: Vpc0Sn1Id
+  Vpc1Sn1Id:
+    Description: The VPC1 Subnet1 ID
+    Value: !Ref Vpc1Sn1
+    Export:
+      Name: Vpc1Sn1Id
+  Vpc1Sn2Id:
+    Description: The VPC1 Subnet2 ID
+    Value: !Ref Vpc1Sn2
+    Export:
+      Name: Vpc1Sn2Id
+  Vpc2Sn1Id:
+    Description: The VPC2 Subnet1 ID
+    Value: !Ref Vpc2Sn1
+    Export:
+      Name: Vpc2Sn1Id
+  Vpc2Sn2Id:
+    Description: The VPC2 Subnet2 ID
+    Value: !Ref Vpc2Sn2
+    Export:
+      Name: Vpc2Sn2Id
